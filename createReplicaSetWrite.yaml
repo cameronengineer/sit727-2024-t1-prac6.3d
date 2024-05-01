@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-write
+spec:
+  selector:
+    matchLabels:
+      postgresfunction: write
+  replicas: 1
+  updateStrategy:
+    type: RollingUpdate
+  serviceName: postgres-write
+  podManagementPolicy: OrderedReady
+  template:
+    metadata:
+      labels:
+        postgresfunction: write
+    spec:
+      securityContext:     
+        fsGroup: 1001
+      volumes:
+        - name: postgres
+          persistentVolumeClaim:
+            claimName: postgres
+      containers:
+        - name: postgres
+          image: 'bitnami/postgresql:16.2.0'
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: postgres
+              containerPort: 5432
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: postgress-write-config
+          volumeMounts:
+            - name: postgres
+              mountPath: /bitnami/postgresql
+              subPath: ''
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      storageClassName: vultr-block-storage-hdd
+      resources:
+        requests:
+          storage: 40Gi
